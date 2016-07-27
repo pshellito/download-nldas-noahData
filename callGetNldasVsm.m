@@ -6,12 +6,13 @@ clear all
 close all
 
 % -------------------------------------------------------------------------
-% In this example, there are two sites with latitude and longitude in the
+% In this example, there are sites with latitude and longitude in the
 % following input file:
 inFile = './inFile.txt';
 % Date range requested
-qStart = [2015,1,1];
-qEnd = [2015,1,1];
+qStart = [2005,1,1];
+qStart = 'apnd';
+qEnd = [2005,1,2];
 
 % -------------------------------------------------------------------------
 % Read the input data from the text file
