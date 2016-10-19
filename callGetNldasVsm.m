@@ -1,6 +1,6 @@
-% This script will call the getNldasForcing function
+% This script will call the getNldasVsm function
 % P. Shellito
-% 2/16/16
+% 7/29/16
 
 clear all
 close all
@@ -10,9 +10,9 @@ close all
 % following input file:
 inFile = './inFile.txt';
 % Date range requested
-qStart = [2005,1,1];
-qStart = 'apnd';
-qEnd = [2005,1,2];
+qStart = [2015,3,31];
+% qStart = 'apnd';
+qEnd = [2015,4,1];
 
 % -------------------------------------------------------------------------
 % Read the input data from the text file
