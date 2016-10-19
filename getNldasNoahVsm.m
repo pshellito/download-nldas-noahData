@@ -1,4 +1,4 @@
-function [ outDir ] = getNldasVsm(qNames, qLat, qLon, qStart, qEnd, outDir)
+function [ outDir ] = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, outDir)
 
 % GETNLDASFORCING This script will download NLDAS primary forcing data from
 %       Nasa's servers.

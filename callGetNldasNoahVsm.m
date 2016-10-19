@@ -42,7 +42,7 @@ startTime = datetime;
 
 % -------------------------------------------------------------------------
 % Call the function
-outDirectory = getNldasVsm(qNames, qLat, qLon, qStart, qEnd, outDir);
+outDirectory = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, outDir);
 
 % -------------------------------------------------------------------------
 % Report where the data are held and how long the script took to run
