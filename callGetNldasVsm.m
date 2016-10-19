@@ -8,7 +8,7 @@ close all
 % -------------------------------------------------------------------------
 % In this example, there are sites with latitude and longitude in the
 % following input file:
-inFile = './inFile.txt';
+inFile = './inFile_pbo.txt';
 % Date range requested
 qStart = [2015,3,31];
 % qStart = 'apnd';
