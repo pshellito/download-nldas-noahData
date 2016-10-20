@@ -127,6 +127,12 @@ end
 if dnEnd < dnStart
     error('Start date cannot be after end date')
 end
+% If longitude is over 180, express as a negative
+for qq = 1:length(qLon)
+    if qLon(qq)>180
+        qLon(qq) = qLon(qq)-360;
+    end
+end
 % -------------------------------------------------------------------------
 % Set up some variables
 % Number of sites requested

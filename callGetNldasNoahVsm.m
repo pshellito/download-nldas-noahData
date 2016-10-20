@@ -11,8 +11,8 @@ close all
 inFile = './inFile_pbo.txt';
 % Date range requested
 qStart = [2015,3,31];
-% qStart = 'apnd';
-qEnd = [2015,4,1];
+qStart = 'apnd';
+qEnd = [2016,8,20];
 
 % -------------------------------------------------------------------------
 % Read the input data from the text file
