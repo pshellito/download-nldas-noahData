@@ -190,20 +190,21 @@ lonStr = 'lon'; % 464x1. Center of 1/8 degree pixel
 % These are 2-d matrices (1 by 224 by 464).
 rainStr = 'Liquid_precipitation_rainfall_surface_1_Hour_Average'; % 1x224x464. Rainfall. kg/m2 accumulated.
 snowStr = 'Frozen_precipitation_eg_snowfall_surface_1_Hour_Average'; % 1x224x464. Snowfall. kg/m2 accumulated.
+lhfStr = 'Latent_heat_flux_surface_1_Hour_Average'; % a 1 by 224 by 264. LHF. W/m2 averaged
 % These are 3-d matrices
- liqSoilMStr = 'Liquid_soil_moisture_content_non-frozen_layer_between_two_depths_below_surface_layer'; % a 1 by 4 by 224 by 464 matrix. Nonfrozen moisture. Depths are: 0 to 10, 10 to 40, 40 to 100, 100 to 200 cm layer depths. (kg/m2) Instantaneous.
+liqSoilMStr = 'Liquid_soil_moisture_content_non-frozen_layer_between_two_depths_below_surface_layer'; % a 1 by 4 by 224 by 464 matrix. Nonfrozen moisture. Depths are: 0 to 10, 10 to 40, 40 to 100, 100 to 200 cm layer depths. (kg/m2) Instantaneous.
 totSoilMStr = 'Soil_moisture_content_layer_between_two_depths_below_surface_layer'; % a 1 by 6 by 224 by 464 matrix. Depths are 0 to 10, 10 to 40, 0 to 100, 40 to 100, 0 to 200, 100 to 200. (kg/m2) Instantaneous.
 
 % Put all the strings into one cell
- allStrings = {rainStr; snowStr; liqSoilMStr; totSoilMStr};
+allStrings = {rainStr; snowStr; liqSoilMStr; totSoilMStr; lhfStr};
 % Names and units for the variables (for headers). LSM = Liquid soil
 % moisture content. TSM = Total soil moisture. Numbers refer to cm below
 % surface. E.g., LSM_10_40 is the liquid (nonfrozen) soil moisture content
 % between 10 and 40 cm.
-namesStrAll = 'Rain      Snow      LSM_0_10 LSM_10_40 LSM_40_100 LSM_100_200 TSM_0_10 TSM_10_40 TSM_40_100 TSM_100_200';
-unitsStrAll = '[kg/m2]   [kg/m2]   [kg/m2]  [kg/m2]   [kg/m2]    [kg/m2]     [kg/m2]  [kg/m2]   [kg/m2]    [kg/m2]';
+namesStrAll = 'Rain      Snow      LSM_0_10 LSM_10_40 LSM_40_100 LSM_100_200 TSM_0_10 TSM_10_40 TSM_40_100 TSM_100_200 LHF';
+unitsStrAll = '[kg/m2]   [kg/m2]   [kg/m2]  [kg/m2]   [kg/m2]    [kg/m2]     [kg/m2]  [kg/m2]   [kg/m2]    [kg/m2]     [W/m2]';
 % Variable formats
-varFmt = '%5.3e %5.3e %5.2f %8.2f %10.2f %10.2f %10.2f %9.2f %9.2f %10.2f\n';
+varFmt = '%5.3e %5.3e %5.2f %8.2f %10.2f %10.2f %10.2f %9.2f %9.2f %10.2f %10.2f\n';
 % Date formats
 dateFmt = '%04d   %02d    %02d  %02d   %02d     ';
 % -------------------------------------------------------------------------
@@ -225,7 +226,8 @@ qFileName = [ftpBaseDir qYearStr(1,:) '/' qDoyStr(1,:) '/' ftpBaseFn qYearStr(1,
 disp(['Getting ' qFileName '...'])
 localFileName = mget(ftpObj,qFileName);
 % Create ncgeodataset object
-geo = ncdataset(localFileName{1});   
+geo = ncdataset(localFileName{1});
+% To list the variables available: geo.variables
 % Extract lat and lon from the grib file
 lat = geo.data(latStr);
 lon = geo.data(lonStr);
@@ -288,7 +290,7 @@ for dd = 1:length(qDatenums)
         % Create ncgeodataset object
         geo = ncdataset(localFileName{1});
         % Initialize a vector to hold the timestep's data (all variables) for entire domain
-        domainData = nan(nLat, nLon, 10);
+        domainData = nan(nLat, nLon, 11);
         % Get the data for each variable
         domainData(:,:,1) = squeeze(geo.data(allStrings{1})); % Rain
         domainData(:,:,2) = squeeze(geo.data(allStrings{2})); % Snow
@@ -301,6 +303,7 @@ for dd = 1:length(qDatenums)
         domainData(:,:,9) = totMoisture(4,:,:);
         domainData(:,:,10) = totMoisture(6,:,:); % Omitting 3 and 5 because those are 0-100 and 0-200 cm soil moisture, respectively. Such values can be obtained from adding up the layers provided here.
         clear totMoisture
+        domainData(:,:,11) = squeeze(geo.data(allStrings{5})); % LHF
         % Loop through each site 
         for ss = 1:nSites
             % Extract the point data at each site from the domain data

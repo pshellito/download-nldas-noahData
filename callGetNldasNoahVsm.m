@@ -8,11 +8,11 @@ close all
 % -------------------------------------------------------------------------
 % In this example, there are sites with latitude and longitude in the
 % following input file:
-inFile = './inFile_pbo.txt';
+inFile = './inFile_test.txt';
 % Date range requested
 qStart = [2015,3,31];
-qStart = 'apnd';
-qEnd = [2016,8,20];
+% qStart = 'apnd';
+qEnd = [2015,3,31];
 
 % -------------------------------------------------------------------------
 % Read the input data from the text file
