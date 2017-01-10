@@ -2,4 +2,7 @@ data/
 nldasVsm/
 otherInFiles/
 cutSomeLines.sh
+infile_tonzi.txt
+batchSubmit.m
+NLDAS_NOAH0125_H.A20160101.0000.002.grb
 .DS_Store
