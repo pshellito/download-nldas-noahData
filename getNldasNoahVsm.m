@@ -1,4 +1,4 @@
-function [ outDir ] = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, outDir)
+function [ outDir ] = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, qVars, outDir)
 
 % GETNLDASFORCING This script will download NLDAS primary forcing data from
 %       Nasa's servers.
@@ -15,6 +15,8 @@ function [ outDir ] = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, outDir)
 % qEnd: a vector [yyyy, mm, dd] specifying the day to stop downloading. End
 %       date must be 4 days before today or earlier. Neither qStart nor 
 %       qEnd support a starting hour and minute.
+% qVars: a cell array specifying which variables to record. Choose between:
+%       
 % outDir: Directory to place the output files. If nothing is provided,
 %       default is to create a directory in the present directory titled
 %       './outFiles/'
@@ -71,10 +73,95 @@ function [ outDir ] = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, outDir)
 
 % -------------------------------------------------------------------------
 % If no output directory was provided
-if nargin<6
+if nargin<7
     outDir = './outFiles';
 end
 
+% -------------------------------------------------------------------------
+% Variables available to request
+varsAvail = {'Rain', 'Snow',...
+    'LSM_0_10', 'LSM_10_40', 'LSM_40_100', 'LSM_100_200', ...
+    'TSM_0_10', 'TSM_10_40', 'TSM_40_100', 'TSM_100_200', ...
+    'LHF', ...
+    'PotLHF', 'SHF', 'G', 'Transp', 'EDir', 'ET', 'ECanopy', ...
+    'Sublim', 'CanopyH2O', 'SnoDepth', 'SWE', 'SnoFrac', 'SnoMelt', ...
+    'QSub', 'QSurf', 'SolDn', 'LWDn', 'SolNet', 'LWNet', 'Albedo', ...
+    'LAI', 'Veg'};
+% The strings found in the grib file that correspond to these variables.
+% All variable descriptions are taken from the NDLAS2 readme file included
+%   in this directory.
+% Note that LSM and TSM are repeated because all levels of those variables
+% come from the same matrix in the grib file.
+% "Instantaneous" means the data values are "at exactly 00 minute of every 
+%   hour"
+% "Averaged" means the data values are the average over the previous hour 
+%   of the time listed in the file. For example, for the 03Z files, the data 
+%   values are the average over the time from 02Z to 03Z.
+% "Accumulated" means the data values are the accumulation over the previous 
+%   hour of the time listed in the file. For example, for the 03Z files, the 
+%   data values are the accumulation over the time from 02Z to 03Z.
+varsStrings = {'Liquid_precipitation_rainfall_surface_1_Hour_Average', ... % 1x224x464. Rainfall. kg/m2 accumulated.
+    'Frozen_precipitation_eg_snowfall_surface_1_Hour_Average', ... % 1x224x464. Snowfall. kg/m2 accumulated.
+    'Liquid_soil_moisture_content_non-frozen_layer_between_two_depths_below_surface_layer', ... % a 1 by 4 by 224 by 464 matrix. Nonfrozen moisture. Depths are: 0 to 10, 10 to 40, 40 to 100, 100 to 200 cm layer depths. (kg/m2) Instantaneous.
+    'Liquid_soil_moisture_content_non-frozen_layer_between_two_depths_below_surface_layer', ... % a 1 by 4 by 224 by 464 matrix. Nonfrozen moisture. Depths are: 0 to 10, 10 to 40, 40 to 100, 100 to 200 cm layer depths. (kg/m2) Instantaneous.
+    'Liquid_soil_moisture_content_non-frozen_layer_between_two_depths_below_surface_layer', ... % a 1 by 4 by 224 by 464 matrix. Nonfrozen moisture. Depths are: 0 to 10, 10 to 40, 40 to 100, 100 to 200 cm layer depths. (kg/m2) Instantaneous.
+    'Liquid_soil_moisture_content_non-frozen_layer_between_two_depths_below_surface_layer', ... % a 1 by 4 by 224 by 464 matrix. Nonfrozen moisture. Depths are: 0 to 10, 10 to 40, 40 to 100, 100 to 200 cm layer depths. (kg/m2) Instantaneous.
+    'Soil_moisture_content_layer_between_two_depths_below_surface_layer', ... % a 1 by 6 by 224 by 464 matrix. Depths are 0 to 10, 10 to 40, 0 to 100, 40 to 100, 0 to 200, 100 to 200. (kg/m2) Instantaneous.
+    'Soil_moisture_content_layer_between_two_depths_below_surface_layer', ... % a 1 by 6 by 224 by 464 matrix. Depths are 0 to 10, 10 to 40, 0 to 100, 40 to 100, 0 to 200, 100 to 200. (kg/m2) Instantaneous.
+    'Soil_moisture_content_layer_between_two_depths_below_surface_layer', ... % a 1 by 6 by 224 by 464 matrix. Depths are 0 to 10, 10 to 40, 0 to 100, 40 to 100, 0 to 200, 100 to 200. (kg/m2) Instantaneous.
+    'Soil_moisture_content_layer_between_two_depths_below_surface_layer', ... % a 1 by 6 by 224 by 464 matrix. Depths are 0 to 10, 10 to 40, 0 to 100, 40 to 100, 0 to 200, 100 to 200. (kg/m2) Instantaneous.
+    'Latent_heat_flux_surface_1_Hour_Average', ... % a 1 by 224 by 264. Latent heat flux. W/m2 averaged.
+    ... % new ones below
+    'Potential_latent_heat_flux_potential_evaporation_surface_1_Hour_Average', ... % Potential latent heat flux (potential evaporation). W/m2 averaged.
+    'Sensible_heat_flux_surface_1_Hour_Average', ... % Sensible heat flux. W/m2 averaged.
+    'Ground_Heat_Flux_surface_1_Hour_Average', ... % Ground heat flux. W/m2 averaged.
+    'Transpiration_surface_1_Hour_Average', ... % Transpiration. W/m2 averaged.
+    'Direct_evaporation_from_bare_soil_surface_1_Hour_Average', ... % Direct evaporation from bare soil. W/m2 averaged.
+    'Evaporation_surface_1_Hour_Average', ... % Evaporation. kg/m2 accumulated. This is actually evapotranspiration.
+    'Canopy_water_evaporation_surface_1_Hour_Average', ... % Canopy water evaporation. W/m2 averaged.
+    'Sublimation_evaporation_from_snow_surface_1_Hour_Average', ... % Sublimation (evaporation from snow). W/m2 averaged.
+    'Plant_canopy_surface_water_surface', ... % Plant canopy surface water. kg/m2 instantaneous.
+    'Snow_depth_surface', ... % Snow depth. m instantaneous.
+    'Water_equivalent_of_accumulated_snow_depth_surface', ... % Water equivalent of accumulated snow depth. kg/m2 instantaneous.
+    'Snow_cover_surface', ... % Snow cover. fraction instantaneous.
+    'Snow_melt_surface_1_Hour_Average', ... % Snow melt. kg/m2 accumulated.
+    'Subsurface_runoff_baseflow_surface_1_Hour_Average', ... % Subsurface runoff. kg/m2 accumulated.
+    'Surface_runoff_non-infiltrating_surface_1_Hour_Average', ... % Surface runoff (non-infiltrating). kg/m2 accumulated.
+    'Downward_shortwave_radiation_flux_surface_1_Hour_Average', ... % Shortwave radiation down. W/m2 averaged.
+    'Downward_longwave_radiation_flux_surface_1_Hour_Average', ... % Long wave radiation down. W/m2 averaged.
+    'Net_short-wave_radiation_flux_surface_surface_1_Hour_Average', ... % Net shortwave radiation. W/m2 averaged.
+    'Net_longwave_radiation_flux_surface_surface_1_Hour_Average', ... % Net long wave radiation. W/m2 averaged.
+    'Albedo_surface', ... % Albedo. Percent instantaneous.
+    'Leaf_area_index_0-9_surface', ... % Leaf area index (0-9). Unitless instantaneous.
+    'Vegetation_surface' ... % Vegetation. Fraction instantaneous.
+    }; 
+% The units of the above variables (must be in the same order) as varsAvail
+varUnits = {'[kg/m2]', '[kg/m2]', ...
+    '[kg/m2]', '[kg/m2]', '[kg/m2]', '[kg/m2]',...
+    '[kg/m2]', '[kg/m2]', '[kg/m2]', '[kg/m2]',...
+    '[W/m2]', ...
+    '[W/m2]', '[W/m2]', '[W/m2]', '[W/m2]', '[W/m2]', ...
+    '[kg/m2]', '[W/m2]', '[W/m2]', '[kg/m2]', '[m]', ...
+    '[kg/m2]', '[frac]', '[kg/m2]', '[kg/m2]', '[kg/m2]', ...
+    '[W/m2]', '[W/m2]', '[W/m2]', '[W/m2]', '[percent]', '[-]', '[frac]'};
+% The length each variable name will take up in the output file
+varLength = [10 10 ...
+    9 10 11 12 ...
+    9 10 11 12 ...
+    9 9 9 9 9 9 ...
+    11 8 8 10 9 9 ...
+    9 9 9 9 9 9 9 10 10 5 7];
+% The format to print each variable
+varFmt = {'%5.3e', '%5.3e', ...
+    '%7.4f ', '%8.4f ', '%8.4f  ', '%8.4f   ', ... % Liquid soil moisture
+    '%7.4f ', '%8.4f ', '%8.4f  ', '%8.4f   ', ... % Total soil moisture
+    '%7.2f ', ... % LHF
+    '%7.2f ', '%7.2f ', '%+7.2f ', '%7.2f ', '%7.2f ', ... % PotLHF, SHF, G, Transp, EDir
+    '%9.2e ', '%6.2f ', '%6.2f ', '%8.4f ', '%7.4f ', ... % ET, ECanopy, Sublim, CanopyH2O, SnowD
+    '%7.2f ', '%5.4f  ', '%7.2f ', '%7.2f ', '%7.2f ', ... % SWE, SnowFrac, SnowMelt, Qsub, Qsurf
+    '%7.2f ', '%7.2f ', '%7.2f ', '%+8.2f ', ... % SolDn, LWDn, SolNet, LWNet
+    '%4.1f     ', '%3.1f ', '%4.3f ', ... % Albedo, LAI, Veg
+    };
 % -------------------------------------------------------------------------
 % Some initial checks
 
@@ -82,7 +169,6 @@ end
 if ~iscellstr(qNames)
     error('Input names must be a cell array of strings.')
 end
-
 
 % If a start date is provided
 if isfloat(qStart)
@@ -133,10 +219,19 @@ for qq = 1:length(qLon)
         qLon(qq) = qLon(qq)-360;
     end
 end
+% Check to be sure each variable requested is available
+for vv = 1:length(qVars)
+    isPresent = any(strcmp(qVars{vv}, varsAvail));
+    if ~isPresent
+        error(['You have reqeseted ' qVars{vv} ', a variable that is either misspelled or not yet available via this code.'])
+    end
+end
 % -------------------------------------------------------------------------
 % Set up some variables
 % Number of sites requested
 nSites = length(qNames);
+% Number of variables requested
+nVars = length(qVars);
 % Initialize vectors for lat/lon idcs
 latIdcs = nan(nSites,1);
 lonIdcs = nan(nSites,1);
@@ -166,6 +261,10 @@ qDayStr = num2str(qDays', '%02d');
 qDoyStr = num2str(qDoy', '%03d');
 % Create hour strings
 qHourStr = num2str((0:100:2300)','%04d');
+
+% Date formats (for year month day hour minute)
+dateFmt = '%04d   %02d    %02d  %02d   %02d     ';
+
 % The directory where nldas forcings are held
 ftpBaseDir = '/data/s4pa/NLDAS/NLDAS_NOAH0125_H.002/';
 % The local directory where nldas forcings will be placed
@@ -183,30 +282,11 @@ ftpBaseFn = 'NLDAS_NOAH0125_H.A';
 % The end of the file name of forcings
 ftpEndFn = '.002.grb';
 
-% Strings of variables to read
+% Strings for lat and lon
 % These are 1-d matrices (1 by 224 or 464).
 latStr = 'lat'; % 224x1. Center of 1/8 degree pixel
 lonStr = 'lon'; % 464x1. Center of 1/8 degree pixel
-% These are 2-d matrices (1 by 224 by 464).
-rainStr = 'Liquid_precipitation_rainfall_surface_1_Hour_Average'; % 1x224x464. Rainfall. kg/m2 accumulated.
-snowStr = 'Frozen_precipitation_eg_snowfall_surface_1_Hour_Average'; % 1x224x464. Snowfall. kg/m2 accumulated.
-lhfStr = 'Latent_heat_flux_surface_1_Hour_Average'; % a 1 by 224 by 264. LHF. W/m2 averaged
-% These are 3-d matrices
-liqSoilMStr = 'Liquid_soil_moisture_content_non-frozen_layer_between_two_depths_below_surface_layer'; % a 1 by 4 by 224 by 464 matrix. Nonfrozen moisture. Depths are: 0 to 10, 10 to 40, 40 to 100, 100 to 200 cm layer depths. (kg/m2) Instantaneous.
-totSoilMStr = 'Soil_moisture_content_layer_between_two_depths_below_surface_layer'; % a 1 by 6 by 224 by 464 matrix. Depths are 0 to 10, 10 to 40, 0 to 100, 40 to 100, 0 to 200, 100 to 200. (kg/m2) Instantaneous.
 
-% Put all the strings into one cell
-allStrings = {rainStr; snowStr; liqSoilMStr; totSoilMStr; lhfStr};
-% Names and units for the variables (for headers). LSM = Liquid soil
-% moisture content. TSM = Total soil moisture. Numbers refer to cm below
-% surface. E.g., LSM_10_40 is the liquid (nonfrozen) soil moisture content
-% between 10 and 40 cm.
-namesStrAll = 'Rain      Snow      LSM_0_10 LSM_10_40 LSM_40_100 LSM_100_200 TSM_0_10 TSM_10_40 TSM_40_100 TSM_100_200 LHF';
-unitsStrAll = '[kg/m2]   [kg/m2]   [kg/m2]  [kg/m2]   [kg/m2]    [kg/m2]     [kg/m2]  [kg/m2]   [kg/m2]    [kg/m2]     [W/m2]';
-% Variable formats
-varFmt = '%5.3e %5.3e %5.2f %8.2f %10.2f %10.2f %10.2f %9.2f %9.2f %10.2f %10.2f\n';
-% Date formats
-dateFmt = '%04d   %02d    %02d  %02d   %02d     ';
 % -------------------------------------------------------------------------
 % Create a directory to hold output data
 if exist(outDir, 'dir') ~= 7
@@ -238,8 +318,47 @@ nLon = length(lon);
 % -------------------------------------------------------------------------
 % Set up output files. Write headers with lat/lon data in them. Get lat/lon
 % idcs.
+
 % Initialize a vector of file IDs
 fid = nan(1,nSites);
+
+% Set up header strings
+% Initialize a string to hold variable names
+namesStrAll = [];
+% Initialize a string to hold the units
+unitsStrAll = [];
+% Initialize a string to hold the variable's format
+fmtStrAll = [];
+% Initialize a cell array to hold the varaibles' names
+varStrAll = cell(1,nVars);
+% Initialize a vector to hold the indices of each variable
+idcsAll = nan(1,nVars);
+
+% Loop through the variables requested
+for vv = 1:nVars
+    % This variable is
+    thisVar = qVars{vv};
+    % The index of this requested variable (refers to all that are
+    % available)
+    idcsAll(vv) = find(strcmp(varsAvail, thisVar));
+    % This variable is referred to in the grib file as
+    varStrAll{vv} = varsStrings{idcsAll(vv)};
+    % The units of this variable
+    thisUnits = varUnits{idcsAll(vv)};
+    % The format for this varaible's data
+    fmtStrAll = [fmtStrAll varFmt{idcsAll(vv)} ' '];
+    % The number of spaces to add after the var name
+    nSpaces(1) = varLength(idcsAll(vv)) - length(thisVar);
+    % The number of spaces to add after the units
+    nSpaces(2) = varLength(idcsAll(vv)) - length(thisUnits);
+    % Fill in the names string
+    namesStrAll = [namesStrAll thisVar blanks(nSpaces(1))];
+    % Fill in the units string
+    unitsStrAll = [unitsStrAll thisUnits blanks(nSpaces(2))];
+end
+% Add a line return to the end of the format string
+fmtStrAll = [fmtStrAll '\n'];
+
 % Loop through each site
 for ss = 1:nSites
     % Get lat/lon idcs
@@ -290,27 +409,47 @@ for dd = 1:length(qDatenums)
         % Create ncgeodataset object
         geo = ncdataset(localFileName{1});
         % Initialize a vector to hold the timestep's data (all variables) for entire domain
-        domainData = nan(nLat, nLon, 11);
+        domainData = nan(nLat, nLon, nVars);
         % Get the data for each variable
-        domainData(:,:,1) = squeeze(geo.data(allStrings{1})); % Rain
-        domainData(:,:,2) = squeeze(geo.data(allStrings{2})); % Snow
-        liqMoisture = squeeze(geo.data(allStrings{3})); % Liquid soil moisture
-        domainData(:,:,3:6) = permute(liqMoisture, [2 3 1]); % Originally the 4 layers were dimension 1. I want them to be dimension 3.
-        clear liqMoisture
-        totMoisture = squeeze(geo.data(allStrings{4})); % Total soil moisture
-        domainData(:,:,7) = totMoisture(1,:,:); 
-        domainData(:,:,8) = totMoisture(2,:,:);
-        domainData(:,:,9) = totMoisture(4,:,:);
-        domainData(:,:,10) = totMoisture(6,:,:); % Omitting 3 and 5 because those are 0-100 and 0-200 cm soil moisture, respectively. Such values can be obtained from adding up the layers provided here.
-        clear totMoisture
-        domainData(:,:,11) = squeeze(geo.data(allStrings{5})); % LHF
+        for vv = 1:nVars
+            varData = squeeze(geo.data(varStrAll{(vv)}));
+            % If these data are liquid soil moisture content or total soil
+            % moisture content, the varaible will be 3-dimentional
+            if ndims(varData) == 3
+                % Specify which index corresponds to the requested layer
+                switch qVars{vv}
+                    case 'LSM_0_10'
+                        dimIdx = 1;
+                    case 'LSM_10_40'
+                        dimIdx = 2;
+                    case 'LSM_40_100'
+                        dimIdx = 3;
+                    case 'LSM_100_200'
+                        dimIdx = 4;
+                    case 'TSM_0_10'
+                        dimIdx = 1;
+                    case 'TSM_10_40'
+                        dimIdx = 2;
+                    case 'TSM_40_100'
+                        dimIdx = 4;
+                    case 'TSM_100_200'
+                        dimIdx = 6;
+                end
+%                 qVars{vv}
+%                 dimIdx
+                % Save only the requested layer
+                domainData(:,:,(vv)) = varData(dimIdx,:,:);
+            else % This is just a 2-d matrix
+                domainData(:,:,(vv)) = varData;
+            end % If this is a 3-d matrix
+        end % Loop through each variable
         % Loop through each site 
         for ss = 1:nSites
             % Extract the point data at each site from the domain data
-            siteVsmData = squeeze(domainData(latIdcs(ss), lonIdcs(ss), :));
+            siteData = squeeze(domainData(latIdcs(ss), lonIdcs(ss), :));
             % Print the data. Hour is hh-1 because hours are listed from
             % 00:00 to 23:00.
-            fprintf(fid(ss), [dateFmt varFmt], [qYears(dd) qMonths(dd) qDays(dd) (hh-1) 0 siteVsmData']);
+            fprintf(fid(ss), [dateFmt fmtStrAll], [qYears(dd) qMonths(dd) qDays(dd) (hh-1) 0 siteData']);
         end % loop through each site
     end % Loop through each hour of the day
     % Delete this day's directory and all data within
