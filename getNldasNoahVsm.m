@@ -16,7 +16,12 @@ function [ outDir ] = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, qVars, o
 %       date must be 4 days before today or earlier. Neither qStart nor 
 %       qEnd support a starting hour and minute.
 % qVars: a cell array specifying which variables to record. Choose between:
-%       
+%       'Rain', 'Snow', 'LSM_0_10', 'LSM_10_40', 'LSM_40_100', 'LSM_100_200', ...
+%       'TSM_0_10', 'TSM_10_40', 'TSM_40_100', 'TSM_100_200', ...
+%       'LHF', 'PotLHF', 'SHF', 'G', 'Transp', 'EDir', 'ET', 'ECanopy', ...
+%       'Sublim', 'CanopyH2O', 'SnoDepth', 'SWE', 'SnoFrac', 'SnoMelt', ...
+%       'QSub', 'QSurf', 'SolDn', 'LWDn', 'SolNet', 'LWNet', 'Albedo', ...
+%       'LAI', 'Veg'
 % outDir: Directory to place the output files. If nothing is provided,
 %       default is to create a directory in the present directory titled
 %       './outFiles/'
@@ -28,7 +33,7 @@ function [ outDir ] = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, qVars, o
 % fileDir = 'ftp://hydro1.sci.gsfc.nasa.gov/data/s4pa/NLDAS/NLDAS_NOAH0125_H.002/2016/001/NLDAS_NOAH0125_H.A20160101.0000.002.grb';
 % 
 % Initial testing revealed that processing one month took 20 minutes using
-% a CU internet connection.
+% a CU internet connection, or 75 minutes using a home connection.
 % 
 % ========================================================================
 % NB: This script requires the user to have downloaded and installed the
@@ -111,7 +116,6 @@ varsStrings = {'Liquid_precipitation_rainfall_surface_1_Hour_Average', ... % 1x2
     'Soil_moisture_content_layer_between_two_depths_below_surface_layer', ... % a 1 by 6 by 224 by 464 matrix. Depths are 0 to 10, 10 to 40, 0 to 100, 40 to 100, 0 to 200, 100 to 200. (kg/m2) Instantaneous.
     'Soil_moisture_content_layer_between_two_depths_below_surface_layer', ... % a 1 by 6 by 224 by 464 matrix. Depths are 0 to 10, 10 to 40, 0 to 100, 40 to 100, 0 to 200, 100 to 200. (kg/m2) Instantaneous.
     'Latent_heat_flux_surface_1_Hour_Average', ... % a 1 by 224 by 264. Latent heat flux. W/m2 averaged.
-    ... % new ones below
     'Potential_latent_heat_flux_potential_evaporation_surface_1_Hour_Average', ... % Potential latent heat flux (potential evaporation). W/m2 averaged.
     'Sensible_heat_flux_surface_1_Hour_Average', ... % Sensible heat flux. W/m2 averaged.
     'Ground_Heat_Flux_surface_1_Hour_Average', ... % Ground heat flux. W/m2 averaged.
@@ -228,6 +232,11 @@ for vv = 1:length(qVars)
 end
 % -------------------------------------------------------------------------
 % Set up some variables
+
+% The path to wget
+PATH = getenv('PATH');
+setenv('PATH', [PATH ':/opt/local/bin/']);
+
 % Number of sites requested
 nSites = length(qNames);
 % Number of variables requested
@@ -266,21 +275,13 @@ qHourStr = num2str((0:100:2300)','%04d');
 dateFmt = '%04d   %02d    %02d  %02d   %02d     ';
 
 % The directory where nldas forcings are held
-ftpBaseDir = '/data/s4pa/NLDAS/NLDAS_NOAH0125_H.002/';
-% The local directory where nldas forcings will be placed
-localBaseDir = [pwd '/data'];
-% If there is already a directory named data in the working directory, do not continue because
-% it will be deleted at the end of this script and I don't want to delete
-% anything that this script itself did not create.
-if exist(localBaseDir, 'dir') == 7
-    error('%s\n%s\n%s','This function requires use of the local directory named ''./data.'',', ...
-        'and you already have a directory with that name. We are stopping here',...
-        'because the end of this function will DELETE ./data and all files within it.')
-end
-% The beginning of the file name of forcings
-ftpBaseFn = 'NLDAS_NOAH0125_H.A';
-% The end of the file name of forcings
-ftpEndFn = '.002.grb';
+httpsBaseUrl = 'https://hydro1.gesdisc.eosdis.nasa.gov/data/NLDAS/NLDAS_NOAH0125_H.002/';
+% The prefix of the files to download
+startFn = 'NLDAS_NOAH0125_H.A';
+% The suffix of the files to download
+endFn = '.grb';
+% Authorization options
+authOpts = '--load-cookies ./.urs_cookies --save-cookies ./.urs_cookies --keep-session-cookies';
 
 % Strings for lat and lon
 % These are 1-d matrices (1 by 224 or 464).
@@ -295,18 +296,23 @@ if exist(outDir, 'dir') ~= 7
 end
 
 % -------------------------------------------------------------------------
-% Set up ftp connection and download the first file to get its lat/lon data
-% The Nasa host that holds nldas forcings
-nasaHost = 'hydro1.sci.gsfc.nasa.gov';
-% Create an ftp object (open the connection)
-ftpObj = ftp(nasaHost);
+% Download the first file to get its lat/lon data
+
+% The directory holding the file to download
+qDirName = [httpsBaseUrl qYearStr(1,:) '/' qDoyStr(1,:) '/'];
 % The file name of the first date requested
-qFileName = [ftpBaseDir qYearStr(1,:) '/' qDoyStr(1,:) '/' ftpBaseFn qYearStr(1,:) qMonthStr(1,:) qDayStr(1,:) '.' qHourStr(1,:) ftpEndFn];
+qFileName = [qDirName startFn qYearStr(1,:) qMonthStr(1,:) qDayStr(1,:) '.' qHourStr(1,:) '.002' endFn];
+% The name that file will have on the local disk
+qFileNameLocal = [startFn qYearStr(1,:) qMonthStr(1,:) qDayStr(1,:) '.' qHourStr(1,:) '.002' endFn];
 % Get that first file
 disp(['Getting ' qFileName '...'])
-localFileName = mget(ftpObj,qFileName);
+status = system(['wget ' authOpts ' ' qFileName]);
 % Create ncgeodataset object
-geo = ncdataset(localFileName{1});
+geo = ncdataset(qFileNameLocal);
+% Delete the file and its gbx9 file
+delete(qFileNameLocal);
+delete([qFileNameLocal '.gbx9']);
+
 % To list the variables available: geo.variables
 % Extract lat and lon from the grib file
 lat = geo.data(latStr);
@@ -397,17 +403,22 @@ end % Loop through each site
 % -------------------------------------------------------------------------
 % Loop through each day in the record
 for dd = 1:length(qDatenums)
-    % Location of this day's data on the local machine
-    localDir = [pwd ftpBaseDir qYearStr(dd,:) '/' qDoyStr(dd,:)];
+    % The directory holding the files to download
+    qDirName = [httpsBaseUrl qYearStr(dd,:) '/' qDoyStr(dd,:) '/'];
+    % Get the files
+    disp(['Getting files in directory ' qDirName '...'])
+    % The bash command to be called. See https://disc.sci.gsfc.nasa.gov/recipes/?q=recipes/How-to-Download-Data-Files-from-HTTP-Service-with-wget
+    % This command will download every data file in the directory
+    command = ['wget ' authOpts ...
+        ' -r -c -nH -nd -np -A ' endFn ...
+        ' "' qDirName '" ' ];
+    status = system(command);
     % Loop through each hour of the day
     for hh = 1:24
-        % Create strings and such to define where the files are located on the host
-        qFileName = [ftpBaseDir qYearStr(dd,:) '/' qDoyStr(dd,:) '/' ftpBaseFn qYearStr(dd,:) qMonthStr(dd,:) qDayStr(dd,:) '.' qHourStr(hh,:) ftpEndFn];
-        % Get the file from Nasa's server
-        disp(['Getting ' qFileName '...'])
-        localFileName = mget(ftpObj,qFileName);
+        % The name that file will have on the local disk
+        qFileNameLocal = [startFn qYearStr(dd,:) qMonthStr(dd,:) qDayStr(dd,:) '.' qHourStr(hh,:) '.002' endFn];
         % Create ncgeodataset object
-        geo = ncdataset(localFileName{1});
+        geo = ncdataset(qFileNameLocal);
         % Initialize a vector to hold the timestep's data (all variables) for entire domain
         domainData = nan(nLat, nLon, nVars);
         % Get the data for each variable
@@ -435,8 +446,6 @@ for dd = 1:length(qDatenums)
                     case 'TSM_100_200'
                         dimIdx = 6;
                 end
-%                 qVars{vv}
-%                 dimIdx
                 % Save only the requested layer
                 domainData(:,:,(vv)) = varData(dimIdx,:,:);
             else % This is just a 2-d matrix
@@ -451,21 +460,20 @@ for dd = 1:length(qDatenums)
             % 00:00 to 23:00.
             fprintf(fid(ss), [dateFmt fmtStrAll], [qYears(dd) qMonths(dd) qDays(dd) (hh-1) 0 siteData']);
         end % loop through each site
+        % Remove the file that was just read
+        delete(qFileNameLocal);
+        delete([qFileNameLocal '.gbx9']);
     end % Loop through each hour of the day
-    % Delete this day's directory and all data within
-    rmdir(localDir, 's')
 end % Loop through each day in the record
 % -------------------------------------------------------------------------
 % Clean up and close files
-% Delete all data stored in this session
-disp(['Cleaning up...'])
-rmdir(localBaseDir, 's')
+% % Delete all data stored in this session
+% disp(['Cleaning up...'])
+% rmdir(localBaseDir, 's')
 % Loop through each site and close the files
 for ss = 1:nSites
     outFile = qNames{ss};
     fclose(fid(ss));
 end
-% Close the ftp connection
-close(ftpObj)
 
 end

@@ -8,11 +8,11 @@ close all
 % -------------------------------------------------------------------------
 % In this example, there are sites with latitude and longitude in the
 % following input file:
-inFile = './inFile_cvs.txt';
+inFile = './ericStations_20170227.txt';
 % Date range requested
-qStart = [2015,1,1];
-qStart = 'apnd';
-qEnd = [2016,12,31];
+qStart = [2006,1,1];
+% qStart = 'apnd';
+qEnd = [2006,7,1];
 
 % -------------------------------------------------------------------------
 % What variables to record
@@ -57,7 +57,7 @@ qVars = {'Rain', 'Snow', ...
     'PotLHF', 'LHF', 'ET', 'EDir', 'ECanopy', 'Transp', 'Sublim', ...
     'SolDn', 'LWDn', 'SolNet', 'LWNet', 'Albedo'};
 qVars = {'Rain', 'Snow', ...
-    'LSM_0_10', 'LSM_10_40', 'LSM_40_100', 'LSM_100_200', ...
+    ... 'LSM_0_10', 'LSM_10_40', 'LSM_40_100', 'LSM_100_200', ...
     'TSM_0_10', 'TSM_10_40', 'TSM_40_100', 'TSM_100_200'};
 
 % -------------------------------------------------------------------------
