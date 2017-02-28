@@ -11,7 +11,7 @@ Matlab R2008a+. You can verify the version of Matlab by typing:
 
       version
 
-Register with URS and create a file titled .netrc in your home directory. Place the following in that directory: (for details see [GES DISC help page](https://disc.sci.gsfc.nasa.gov/recipes/?q=recipes/How-to-Download-Data-Files-from-HTTP-Service-with-wget))
+Register with URS and create a file titled .netrc in your home directory. Place the following in that file: (for details see [GES DISC help page](https://disc.sci.gsfc.nasa.gov/recipes/?q=recipes/How-to-Download-Data-Files-from-HTTP-Service-with-wget))
 
       machine urs.earthdata.nasa.gov login <uid> password <password>
 
