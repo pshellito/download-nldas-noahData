@@ -8,11 +8,11 @@ close all
 % -------------------------------------------------------------------------
 % In this example, there are sites with latitude and longitude in the
 % following input file:
-inFile = './ericStations_20170227.txt';
+inFile = './inFile_test.txt';
 % Date range requested
 qStart = [2006,1,1];
 % qStart = 'apnd';
-qEnd = [2006,7,1];
+qEnd = [2017,1,27];
 
 % -------------------------------------------------------------------------
 % What variables to record
@@ -86,12 +86,21 @@ disp('Starting the script at')
 disp(datetime)
 startTime = datetime;
 
+fid = fopen('startStopTime.txt','w');
+fprintf(fid, ['script started at ' datestr(startTime) '\n']);
+fclose(fid);
+
 % -------------------------------------------------------------------------
 % Call the function
 outDirectory = getNldasNoahVsm(qNames, qLat, qLon, qStart, qEnd, qVars, outDir);
 
 % -------------------------------------------------------------------------
 % Report where the data are held and how long the script took to run
+
+fid = fopen('startStopTime.txt', 'a');
+fprintf(fid, ['script ended at   ' datestr(datetime)]);
+fclose(fid);
+
 disp('Finished! Site data can be found here:')
 disp(outDirectory)
 disp('Start and finish times were:')

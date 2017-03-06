@@ -230,12 +230,19 @@ for vv = 1:length(qVars)
         error(['You have reqeseted ' qVars{vv} ', a variable that is either misspelled or not yet available via this code.'])
     end
 end
+
 % -------------------------------------------------------------------------
-% Set up some variables
+% Set up some system-specific variables
 
 % The path to wget
 PATH = getenv('PATH');
 setenv('PATH', [PATH ':/opt/local/bin/']);
+
+% The path to the default user work folder
+userFolder = '/Users/petershellito/Documents/MATLAB/';
+
+% -------------------------------------------------------------------------
+% Set up some for downloading .grb files
 
 % Number of sites requested
 nSites = length(qNames);
@@ -462,7 +469,12 @@ for dd = 1:length(qDatenums)
         end % loop through each site
         % Remove the file that was just read
         delete(qFileNameLocal);
+        % Delete the .gbx9 file that was created
         delete([qFileNameLocal '.gbx9']);
+        % Delete the .ncx file that was, for some reason, created in the
+        % user folder
+        delete([userFolder qFileNameLocal '.ncx']);
+%         delete([qFileNameLocal '.ncx']);
     end % Loop through each hour of the day
 end % Loop through each day in the record
 % -------------------------------------------------------------------------
